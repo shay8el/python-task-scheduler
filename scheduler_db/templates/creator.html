@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Creator</title>
+    <script>
+        const CONFIG = {
+            "dbUrl": "/",
+            "endpoints": {
+                "createOccurrence": "occurrences",
+                "getGenericOccurrences": "occurrences?generic=True",
+                "getActions": "actions",
+                "createTask": "occurrences/",
+            }
+        };
+        const getGenericOccurrences = async () => {
+            if (localStorage.getItem('genericOccurrences') === null) {
+                const genericOccurrences = await fetchGenericOccurrences();
+                localStorage.setItem('genericOccurrences', JSON.stringify(genericOccurrences));
+                console.log("aa");
+                return genericOccurrences
+
+            } else {
+                return JSON.parse(localStorage.getItem('genericOccurrences'))
+            }
+        };
+        const createOccurrence = async (data) => {
+            const url = CONFIG.dbUrl + CONFIG.endpoints.createOccurrence;
+            const rawResponse = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return await rawResponse.json();
+        };
+        const createTask = async (occurrenceId, data) => {
+            const url = CONFIG.dbUrl + CONFIG.endpoints.createTask + occurrenceId;
+            const rawResponse = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return await rawResponse.json();
+        };
+        const getActions = async () => {
+            const url = CONFIG.dbUrl + CONFIG.endpoints.getActions;
+            const rawResponse = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+            });
+            return await rawResponse.json();
+        };
+        const fetchGenericOccurrences = async () => {
+            const url = CONFIG.dbUrl + CONFIG.endpoints.getGenericOccurrences;
+            const rawResponse = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+            });
+            return await rawResponse.json();
+        };
+        const getActionDueTime = (dueTime, distinction) => {
+            const days = parseInt(distinction.match(/((\d|-)+)d/)[1]);
+            const hours = parseInt(distinction.match(/((\d|-)+)h/)[1]);
+            const minutes = parseInt(distinction.match(/((\d|-)+)m/)[1]);
+            const seconds = parseInt(distinction.match(/((\d|-)+)s/)[1]);
+            const actionDueTime = new Date(dueTime);
+            actionDueTime.setDate(actionDueTime.getDate() + days);
+            actionDueTime.setHours(actionDueTime.getHours() + hours);
+            actionDueTime.setMinutes(actionDueTime.getMinutes() + minutes);
+            actionDueTime.setSeconds(actionDueTime.getSeconds() + seconds);
+            return actionDueTime;
+        };
+        const getTaskIdByParams = async (params) => {
+            const genericOccurrences = await getGenericOccurrences();
+            const occurrence = genericOccurrences.find(occurrence => occurrence.title === params.title);
+            let occurrenceId = null;
+            if (occurrence === undefined) {
+                occurrenceId = await createOccurrence({
+                    title: params.title,
+                    details: params.details,
+                    occurrenceDueTime: params.occurrenceDueTime
+                });
+            } else {
+                occurrenceId = occurrence.id
+            }
+            const actions = await getActions();
+            const actionId = actions.find(action => action.name === params.actionName).id;
+            const taskDueTime = getActionDueTime(params.occurrenceDueTime, params.distinction).toLocaleString();
+            const taskId = await createTask(occurrenceId, {
+                actionId,
+                distinction: params.distinction,
+                taskDueTime,
+                taskArgs: params.taskArgs
+            });
+            return taskId
+        };
+        const createScriptOne = async () => {
+            const now = new Date();
+            const params = {
+                title: "Important meeting with Nadav",
+                details: "some mock details",
+                occurrenceDueTime: new Date().setHours(now.getHours() + 1),
+                actionName: "notification",
+                distinction: "(0d)(0h)(-59m)(00s)",
+                taskArgs: "{'webHookToTrigger': 'mockURL.com'}"
+            };
+
+            console.log(await getTaskIdByParams(params));
+        };
+        const createScriptTwo = async () => {
+            const now = new Date();
+            const params = {
+                title: "User Created",
+                details: "",
+                occurrenceDueTime: now,
+                actionName: "email",
+                distinction: "(0d)(0h)(0m)(30s)",
+                taskArgs: "{'recipientAddress': 'david1@jolt.com'}"
+            };
+            console.log(await getTaskIdByParams(params));
+        };
+        const createScriptThree = async () => {
+            const params = {
+                title: "Maccabi Game",
+                details: "at Bloomfield",
+                occurrenceDueTime: new Date(2019, 9, 28, 21),
+                actionName: "sms",
+                distinction: "(0d)(0h)(00m)(00s)",
+                taskArgs: "{'smsTo': '0502222222'}"
+            };
+
+            console.log(await getTaskIdByParams(params));
+        };
+
+        const refreshLogFrame = () => {
+            document.getElementById('executor').src += '';
+        };
+
+    </script>
+</head>
+<body>
+<div style="display: flex; flex-wrap: nowrap; height: 50vh; width: 95vw; align-items: center; justify-content: space-around ">
+    <button onClick="createScriptOne()"> Set a meeting to next hour, with a remainder 59min before</button>
+    <button onClick="createScriptTwo()"> User "david123@jolt.com" just Created, send welcome mail in 30sec</button>
+    <button onClick="createScriptThree()"> send an SMS when Maccabi game starting (28.10.19 | 20:00)</button>
+</div>
+<div>
+    <button onClick="refreshLogFrame()"> refresh executor log file</button>
+    <iframe src="http://127.0.0.1:5001" style=" height: 40vh; width: 95vw;" id="executor" ></iframe>
+</div>
+</body>
+</html>
