@@ -9,6 +9,6 @@ insert into occurrences(title, details,due_time) values
 ("Maccabi Tel-Aviv vs. Hapoel Beer-Sheva", "at Bloomfield stadium","2019-10-23 16:00:00");
 
 insert into actions(name, location, args) values
-("notification", "example_actions/send_notification.py", "{'default_arg':'aaa'}"),
-("email", "example_actions/send_email.py", "{'service_token':'cba321'}"),
-("sms", "example_actions/send_sms.py", "{'service_token':'abc123'}");
+("notification", "executor/example_actions/send_notification.py", "{'default_arg':'aaa'}"),
+("email", "executor/example_actions/send_email.py", "{'service_token':'cba321'}"),
+("sms", "executor/example_actions/send_sms.py", "{'service_token':'abc123'}");

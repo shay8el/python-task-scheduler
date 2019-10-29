@@ -1,5 +1,5 @@
 {
-  "base_dir": "scheduler_db\\DAL\\data",
+  "base_dir": "data",
   "DB_name": "scheduler.db",
   "schema_path": "schema.sql",
   "mock_data_path": "insert_mock.sql"

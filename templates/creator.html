@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Creator</title>
     <script>
+        window.onload = ()=> document.getElementById("executor-log-div").scrollTop = document.getElementById("executor-log-div").scrollHeight;
         const CONFIG = {
             "dbUrl": "/",
             "endpoints": {
@@ -135,7 +136,7 @@
             const params = {
                 title: "Maccabi Game",
                 details: "at Bloomfield",
-                occurrenceDueTime: new Date(2019, 9, 28, 21),
+                occurrenceDueTime: new Date(2019, 10, 28, 21),
                 actionName: "sms",
                 distinction: "(0d)(0h)(00m)(00s)",
                 taskArgs: "{'smsTo': '0502222222'}"
@@ -154,11 +155,12 @@
 <div style="display: flex; flex-wrap: nowrap; height: 50vh; width: 95vw; align-items: center; justify-content: space-around ">
     <button onClick="createScriptOne()"> Set a meeting to next hour, with a remainder 59min before</button>
     <button onClick="createScriptTwo()"> User "david123@jolt.com" just Created, send welcome mail in 30sec</button>
-    <button onClick="createScriptThree()"> send an SMS when Maccabi game starting (28.10.19 | 20:00)</button>
+    <button onClick="createScriptThree()"> send an SMS when Maccabi game starting (28.11.19 | 20:00)</button>
 </div>
-<div>
-    <button onClick="refreshLogFrame()"> refresh executor log file</button>
-    <iframe src="http://127.0.0.1:5001" style=" height: 40vh; width: 95vw;" id="executor" ></iframe>
+Executor logs
+<div id="executor-log-div"
+     style=" height: 40vh; width: 95vw; background-color:#cccccc; overflow: auto; white-space: pre-line;">
+    {{ executor_data }}
 </div>
 </body>
 </html>

@@ -2,13 +2,14 @@ import json
 import os
 import sqlite3
 
-CONFIG = os.path.join('scheduler_db','DAL', 'config.json')
+ROOT = os.path.dirname(os.path.realpath(__file__))
+CONFIG = os.path.join(ROOT, 'config.json')
 
 
 class DBConnector:
     def __init__(self, config_path=CONFIG):
         self.config = self.load_config_file(config_path)
-        self.db_path = os.path.join(self.config['base_dir'], self.config['DB_name'])
+        self.db_path = os.path.join(ROOT, self.config['base_dir'], self.config['DB_name'])
         self.init_db_connection()
 
     @staticmethod
@@ -27,7 +28,7 @@ class DBConnector:
         return sqlite3.connect(self.db_path)
 
     def create_tables(self):
-        path = os.path.join(self.config['base_dir'], self.config['schema_path'])
+        path = os.path.join(ROOT, self.config['base_dir'], self.config['schema_path'])
         qry = open(path, 'r').read()
         sqlite3.complete_statement(qry)
         conn = self.__setup_connection()
@@ -38,7 +39,7 @@ class DBConnector:
             print e
 
     def insert_mock_data(self):
-        path = os.path.join(self.config['base_dir'], self.config['mock_data_path'])
+        path = os.path.join(ROOT, self.config['base_dir'], self.config['mock_data_path'])
         qry = open(path, 'r').read()
         sqlite3.complete_statement(qry)
         conn = self.__setup_connection()
@@ -122,7 +123,7 @@ class DBConnector:
                 from ((tasks
                 INNER JOIN occurrences ON tasks.occurrence_id=occurrences.id)
                 INNER JOIN actions ON tasks.action_id=actions.id)
-                WHERE tasks.status='PENDING' and DATETIME(tasks.due_time) > DATETIME('now') and DATETIME(tasks.due_time)<DATETIME('now','+{days} day')
+                WHERE tasks.status='PENDING' and DATETIME(tasks.due_time)<DATETIME('now','+{days} day')
                 """.format(days=max_age_days)
         rows = self.__execute_select_query(qry, True)
         return rows

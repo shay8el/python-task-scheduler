@@ -4,11 +4,13 @@ import subprocess
 import sys
 import time
 
-import requests
 import logging
 from datetime import timedelta, datetime
+from logging.handlers import RotatingFileHandler
 
+from DAL.sql_connector import DBConnector
 from task import Task
+from os import path
 
 
 class Executor:
@@ -20,20 +22,25 @@ class Executor:
         self.add_tasks_to_queue(self.fetch_tasks())
 
     def init_logger(self):
+        ROOT = path.dirname(path.dirname(path.realpath(__file__)))
+        log_path = path.join(ROOT, "executor.log")
+
         logger = logging.getLogger('executor')
         logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler('executor.log')
+        fh = RotatingFileHandler(log_path, mode='a', maxBytes=5 * 1024 * 1024,
+                                 backupCount=2, encoding=None, delay=0)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        ch.setFormatter(formatter)
         logger.addHandler(fh)
+        logger.addHandler(ch)
         return logger
 
     def fetch_tasks(self):
-        url = "http://127.0.0.1:5000/executor"
-        data = {'max_age_days': self.MAX_AGE_DAYS.days}
-        response = requests.get(url,data=data)
-        response.raise_for_status()
-        return response.json()
+        db_connector = DBConnector()
+        return db_connector.get_pending_tasks_by_max_age_days(self.MAX_AGE_DAYS.days)
 
     def add_tasks_to_queue(self, tasks):
         for task_dict in tasks:
@@ -44,7 +51,7 @@ class Executor:
 
     @staticmethod
     def is_task_time_apply(first_task_time):
-        return first_task_time < datetime.now()
+        return first_task_time <= datetime.now()
 
     def is_far_fetched(self, task_due_time):
         return task_due_time > datetime.now() + self.MAX_AGE_DAYS
@@ -67,10 +74,8 @@ class Executor:
         subprocess.call([sys.executable, action_location, args])
 
     def mark_task_as_done(self, task_id):
-        url = "http://127.0.0.1:5000/executor"
-        data = {'task_id': task_id}
-        response = requests.post(url, data=data)
-        response.raise_for_status()
+        db_connector = DBConnector()
+        db_connector.mark_task_as_done(task_id)
         self.logger.info("task_id {} marked as done".format(task_id))
 
     def run(self):
